@@ -1,0 +1,27 @@
+# Core multi-agent orchestration
+# crewai 1.x resolves LLM providers in tiers:
+#   - true native SDKs: openai, anthropic, azure, gemini, bedrock, snowflake
+#     -> install the matching extra, e.g. `pip install "crewai[anthropic]"`
+#     (this file installs [anthropic] to match the default LLM_PROVIDER)
+#   - a built-in OpenAI-compatible handler covers: ollama, dashscope (hosted
+#     Qwen), deepseek, openrouter, cerebras, hosted_vllm -> NO extra package
+#     needed for any of these (Ollama the *application* is still a separate,
+#     non-pip install from ollama.com)
+#   - everything else (including groq) falls back to LiteLLM -> run
+#     `pip install "crewai[litellm]"` if you set LLM_PROVIDER=groq
+crewai[anthropic]>=1.15.0
+crewai-tools[tavily-python,scrapegraph-py]>=0.40.0
+
+# Config / data contracts
+pydantic>=2.7
+pydantic-settings>=2.3
+
+# Report generation
+jinja2>=3.1
+
+# CLI / logging
+rich>=13.7
+python-dotenv>=1.0
+
+# Testing
+pytest>=8.2

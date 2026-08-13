@@ -1,0 +1,11 @@
+services:
+  procurement-assistant:
+    build: .
+    env_file:
+      - .env
+    volumes:
+      - ./outputs:/app/outputs
+      - ./.cache:/app/.cache
+    # Override at run time, e.g.:
+    #   docker compose run procurement-assistant --request "enclosed-chamber 3D printer" --engine flow
+    command: ["--demo"]
