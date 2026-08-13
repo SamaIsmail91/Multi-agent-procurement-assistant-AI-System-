@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Procurement Recommendation — {{ report.generated_for }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  :root{
+    --ink:#10233F;
+    --ink-soft:#2A3F5E;
+    --paper:#F1F3F5;
+    --paper-card:#FFFFFF;
+    --line:#D8DEE2;
+    --slate:#445064;
+    --brass:#B8863B;
+    --brass-soft:#F3E7D2;
+    --teal:#1F6F54;
+    --teal-soft:#DFF0E9;
+    --brick:#A6402F;
+    --brick-soft:#F6E1DD;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Inter',system-ui,sans-serif; font-size:15px; line-height:1.55;
+  }
+  .mono{font-family:'IBM Plex Mono',ui-monospace,monospace;}
+  .wrap{max-width:1120px; margin:0 auto; padding:0 28px 80px;}
+
+  /* ---------- Header band ---------- */
+  header.band{
+    background:linear-gradient(155deg,var(--ink) 0%,var(--ink-soft) 100%);
+    color:#EAF0FA; padding:44px 0 34px;
+  }
+  header.band .wrap{display:flex; flex-wrap:wrap; gap:32px; justify-content:space-between; align-items:flex-end;}
+  .eyebrow{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.16em;
+    text-transform:uppercase; color:#9FB3D6; margin:0 0 10px;
+  }
+  h1{font-family:'Fraunces',serif; font-weight:600; font-size:34px; margin:0 0 6px; letter-spacing:-.01em;}
+  .req-line{color:#C7D4E8; font-size:14.5px; max-width:56ch;}
+  .cost-block{text-align:right; min-width:220px;}
+  .cost-label{font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#9FB3D6;}
+  .cost-figure{font-family:'Fraunces',serif; font-weight:600; font-size:40px; color:#fff; line-height:1.1;}
+  .cost-sub{font-size:12.5px; color:#9FB3D6;}
+
+  /* ---------- Generic section shell ---------- */
+  section{margin-top:36px;}
+  .section-head{display:flex; align-items:baseline; gap:12px; margin-bottom:16px;}
+  .section-num{font-family:'IBM Plex Mono',monospace; color:var(--brass); font-size:13px; font-weight:600; margin-right:2px;}
+  .section-title{font-family:'Fraunces',serif; font-size:21px; font-weight:600; margin:0;}
+  .card{
+    background:var(--paper-card); border:1px solid var(--line); border-radius:var(--radius);
+    padding:24px 26px;
+  }
+
+  /* ---------- Executive summary ---------- */
+  .exec-summary p{margin:0; font-size:15.5px; color:var(--ink-soft);}
+
+  /* ---------- Recommendation hero ---------- */
+  .hero{display:flex; align-items:center; gap:28px;}
+  .hero-mid{flex:1; min-width:0;}
+  .hero-price{flex-shrink:0;}
+  .stamp{position:relative; width:132px; height:132px; flex-shrink:0;}
+  .stamp svg{width:100%; height:100%; transform:rotate(-90deg);}
+  .stamp-label{
+    position:absolute; top:0; left:0; right:0; bottom:0; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    text-align:center;
+  }
+  .stamp-score{font-family:'Fraunces',serif; font-weight:700; font-size:30px; line-height:1;}
+  .stamp-caption{font-family:'IBM Plex Mono',monospace; font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--slate); margin-top:2px;}
+  .hero-mid .badge{
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em;
+    text-transform:uppercase; padding:4px 10px; border-radius:999px; margin-bottom:10px; font-weight:600;
+  }
+  .badge.approved{background:var(--teal-soft); color:var(--teal);}
+  .badge.review{background:var(--brass-soft); color:var(--brass);}
+  .hero-mid h2{font-family:'Fraunces',serif; font-size:24px; margin:0 0 4px;}
+  .hero-mid .vendor{color:var(--slate); font-size:14px; margin-bottom:10px;}
+  .verdict{font-size:14.5px; color:var(--ink-soft);}
+  .hero-price{text-align:right;}
+  .hero-price .amount{font-family:'Fraunces',serif; font-size:30px; font-weight:600;}
+  .hero-price .unit{font-size:12px; color:var(--slate);}
+
+  /* ---------- Score composition ledger ---------- */
+  .ledger-row{display:grid; grid-template-columns:180px 1fr 64px; gap:14px; align-items:center; padding:10px 0; border-bottom:1px solid var(--line);}
+  .ledger-row:last-child{border-bottom:none;}
+  .ledger-name{font-size:13.5px; font-weight:600;}
+  .ledger-rank{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--slate);}
+  .stack{height:14px; border-radius:4px; overflow:hidden; display:flex; background:var(--line);}
+  .stack span{height:100%;}
+  .seg-price{background:#2E5EAA;}
+  .seg-spec{background:#5B8C68;}
+  .seg-vendor{background:var(--brass);}
+  .seg-delivery{background:#8B6FB0;}
+  .ledger-total{font-family:'IBM Plex Mono',monospace; text-align:right; font-weight:600;}
+  .legend{display:flex; gap:18px; flex-wrap:wrap; margin-top:14px; font-size:12px; color:var(--slate);}
+  .legend i{display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px; vertical-align:-1px;}
+
+  /* ---------- Comparison table ---------- */
+  table{width:100%; border-collapse:collapse; font-size:13.5px;}
+  thead th{
+    text-align:left; font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--slate); padding:0 12px 10px; border-bottom:2px solid var(--ink);
+  }
+  tbody td{padding:12px; border-bottom:1px solid var(--line); vertical-align:top;}
+  tbody tr:hover{background:#F7F9FA;}
+  .rank-pill{
+    display:inline-flex; align-items:center; justify-content:center; width:24px; height:24px;
+    border-radius:50%; background:var(--ink); color:#fff; font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:600;
+  }
+  .rank-pill.top{background:var(--brass);}
+  td.product-name{font-weight:600;}
+  td.num{font-family:'IBM Plex Mono',monospace; text-align:right;}
+  .risk-chip{
+    display:inline-block; font-size:11px; padding:2px 7px; border-radius:5px; background:var(--brick-soft);
+    color:var(--brick); margin:2px 3px 0 0;
+  }
+  .disqualified{opacity:.65;}
+  .disqualified td.product-name::after{content:" — disqualified"; font-weight:400; color:var(--brick); font-size:11.5px;}
+
+  /* ---------- Chart card ---------- */
+  .chart-card{padding:20px 26px 8px;}
+  canvas{max-height:340px;}
+
+  /* ---------- Compliance ---------- */
+  .compliance-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;}
+  .check{display:flex; align-items:center; gap:10px; font-size:14px;}
+  .check .dot{width:10px; height:10px; border-radius:50%;}
+  .dot.ok{background:var(--teal);} .dot.bad{background:var(--brick);}
+  .risk-list{margin:10px 0 0; padding-left:18px;}
+  .risk-list li{margin-bottom:6px; color:var(--ink-soft);}
+
+  /* ---------- Methodology / footer ---------- */
+  .methodology{font-size:13.5px; color:var(--slate);}
+  .weights-row{display:flex; gap:22px; flex-wrap:wrap; margin-top:10px;}
+  .weight-chip{font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--paper); border:1px solid var(--line); padding:4px 10px; border-radius:6px;}
+  footer{margin-top:56px; padding-top:20px; border-top:1px solid var(--line); font-size:12px; color:var(--slate); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;}
+
+  @media (max-width:720px){
+    .hero{grid-template-columns:1fr; text-align:center;}
+    .hero-price{text-align:center;}
+    .ledger-row{grid-template-columns:1fr; text-align:left;}
+    header.band .wrap{align-items:flex-start;}
+    .cost-block{text-align:left;}
+  }
+  @media print{
+    body{background:#fff;}
+    header.band{background:var(--ink) !important; -webkit-print-color-adjust:exact; print-color-adjust:exact;}
+    section{page-break-inside:avoid;}
+  }
+</style>
+</head>
+<body>
+
+<header class="band">
+  <div class="wrap">
+    <div>
+      <p class="eyebrow">Procurement Recommendation Report</p>
+      <h1>{{ report.generated_for }}</h1>
+      <p class="req-line">{{ report.request_summary }}</p>
+      <p class="req-line mono" style="margin-top:8px; font-size:12px; color:#8FA3C6;">Generated {{ generated_date }} · Multi-Agent Procurement Assistant</p>
+    </div>
+    <div class="cost-block">
+      <div class="cost-label">Estimated Total Cost</div>
+      <div class="cost-figure">{{ total_cost_formatted }}</div>
+      <div class="cost-sub">{{ report.full_comparison.ranked_products|length + report.full_comparison.disqualified_products|length }} candidates evaluated · {{ quantity }} unit(s)</div>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <section class="exec-summary">
+    <div class="section-head"><span class="section-num">01</span><h2 class="section-title">Executive Summary</h2></div>
+    <div class="card"><p>{{ report.executive_summary }}</p></div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2 class="section-title">Recommendation</h2></div>
+    <div class="card hero">
+      <div class="stamp">
+        <svg viewBox="0 0 132 132">
+          <circle cx="66" cy="66" r="56" fill="none" stroke="var(--line)" stroke-width="10"/>
+          <circle cx="66" cy="66" r="56" fill="none" stroke="{{ stamp_color }}" stroke-width="10"
+                  stroke-linecap="round" stroke-dasharray="{{ stamp_dasharray }} 1000"/>
+        </svg>
+        <div class="stamp-label">
+          <div class="stamp-score" style="color:{{ stamp_color }}">{{ top.score.weighted_total|round(0)|int }}</div>
+          <div class="stamp-caption">Score / 100</div>
+        </div>
+      </div>
+      <div class="hero-mid">
+        <span class="badge {{ 'approved' if report.compliance_review.approved else 'review' }}">
+          {{ 'Approved — Rank #1' if report.compliance_review.approved else 'Rank #1 — Pending Review' }}
+        </span>
+        <h2>{{ top.product.product_name }}</h2>
+        <div class="vendor">{{ top.product.vendor }} · <a href="{{ top.product.source_url }}" style="color:inherit;">source</a></div>
+        <div class="verdict">{{ top.value_verdict }}</div>
+      </div>
+      <div class="hero-price">
+        <div class="amount">{{ top_price_formatted }}</div>
+        <div class="unit">per unit</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2 class="section-title">Score Composition</h2></div>
+    <div class="card">
+      {% for rp in report.full_comparison.ranked_products %}
+      <div class="ledger-row">
+        <div>
+          <div class="ledger-name">{{ rp.product.product_name }}</div>
+          <div class="ledger-rank">RANK {{ rp.rank }}</div>
+        </div>
+        <div class="stack">
+          <span class="seg-price" style="width:{{ (rp.score.price_score * weights.price)|round(2) }}%"></span>
+          <span class="seg-spec" style="width:{{ (rp.score.spec_score * weights.specifications)|round(2) }}%"></span>
+          <span class="seg-vendor" style="width:{{ (rp.score.vendor_score * weights.vendor_reliability)|round(2) }}%"></span>
+          <span class="seg-delivery" style="width:{{ (rp.score.delivery_score * weights.delivery_speed)|round(2) }}%"></span>
+        </div>
+        <div class="ledger-total mono">{{ rp.score.weighted_total|round(1) }}</div>
+      </div>
+      {% endfor %}
+      <div class="legend">
+        <span><i style="background:#2E5EAA"></i>Price</span>
+        <span><i style="background:#5B8C68"></i>Specifications</span>
+        <span><i style="background:var(--brass)"></i>Vendor reliability</span>
+        <span><i style="background:#8B6FB0"></i>Delivery speed</span>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">04</span><h2 class="section-title">Comparative Profile — Top Candidates</h2></div>
+    <div class="card chart-card"><canvas id="radarChart"></canvas></div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">05</span><h2 class="section-title">Full Comparison</h2></div>
+    <div class="card" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Rank</th><th>Product</th><th>Vendor</th><th style="text-align:right;">Price</th>
+            <th style="text-align:right;">Score</th><th>Risk Flags</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for rp in report.full_comparison.ranked_products %}
+          <tr>
+            <td><span class="rank-pill {{ 'top' if rp.rank == 1 else '' }}">{{ rp.rank }}</span></td>
+            <td class="product-name">{{ rp.product.product_name }}</td>
+            <td>{{ rp.product.vendor }}</td>
+            <td class="num">{{ format_money(rp.product.price, rp.product.currency) }}</td>
+            <td class="num">{{ rp.score.weighted_total|round(1) }}</td>
+            <td>{% for flag in rp.risk_flags %}<span class="risk-chip">{{ flag }}</span>{% endfor %}</td>
+          </tr>
+          {% endfor %}
+          {% for dq in report.full_comparison.disqualified_products %}
+          <tr class="disqualified">
+            <td>—</td>
+            <td class="product-name">{{ dq.product_name }}</td>
+            <td>{{ dq.vendor }}</td>
+            <td class="num">{{ format_money(dq.price, dq.currency) }}</td>
+            <td class="num">—</td>
+            <td><span class="risk-chip">{{ dq.disqualification_reason or 'Did not meet requirements' }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">06</span><h2 class="section-title">Compliance &amp; Risk Review</h2></div>
+    <div class="card">
+      <div class="compliance-grid">
+        <div class="check"><span class="dot {{ 'ok' if report.compliance_review.approved else 'bad' }}"></span>Overall approval: <strong>{{ 'Approved' if report.compliance_review.approved else 'Requires review' }}</strong></div>
+        <div class="check"><span class="dot {{ 'ok' if report.compliance_review.budget_compliant else 'bad' }}"></span>Budget compliant: <strong>{{ 'Yes' if report.compliance_review.budget_compliant else 'No' }}</strong></div>
+      </div>
+      <p class="verdict">{{ report.compliance_review.reviewer_notes }}</p>
+      {% if report.compliance_review.flagged_risks %}
+      <ul class="risk-list">
+        {% for risk in report.compliance_review.flagged_risks %}<li>{{ risk }}</li>{% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">07</span><h2 class="section-title">Methodology</h2></div>
+    <div class="card methodology">
+      <p>{{ report.full_comparison.methodology_note }}</p>
+      <p>Each candidate is scored 0–100 on four independent dimensions, then combined into a single weighted total using this engagement's stated priorities:</p>
+      <div class="weights-row">
+        <span class="weight-chip">Price · {{ (weights.price*100)|round(0)|int }}%</span>
+        <span class="weight-chip">Specifications · {{ (weights.specifications*100)|round(0)|int }}%</span>
+        <span class="weight-chip">Vendor reliability · {{ (weights.vendor_reliability*100)|round(0)|int }}%</span>
+        <span class="weight-chip">Delivery speed · {{ (weights.delivery_speed*100)|round(0)|int }}%</span>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <span>Generated by the Multi-Agent Procurement Assistant (CrewAI) · Data extracted via automated web research — verify pricing and availability directly with the vendor before purchase.</span>
+    <span class="mono">{{ generated_date }}</span>
+  </footer>
+
+</div>
+
+<script>
+  const radarData = {{ radar_json|safe }};
+  new Chart(document.getElementById('radarChart'), {
+    type: 'radar',
+    data: radarData,
+    options: {
+      responsive: true,
+      scales: { r: { min: 0, max: 100, ticks: { stepSize: 25, backdropColor: 'transparent' }, grid: { color: '#D8DEE2' }, angleLines: { color: '#D8DEE2' }, pointLabels: { font: { size: 12 } } } },
+      plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8 } } }
+    }
+  });
+</script>
+</body>
+</html>
